@@ -180,7 +180,7 @@ inline void mix_and_propagate(__m128i& x0, __m128i& x1, __m128i& x2, __m128i& x3
 template <bool SOFT_AES, bool PREFETCH, xmrstak_algo_id ALGO>
 void cn_explode_scratchpad(const __m128i* input, __m128i* output, const xmrstak_algo& algo)
 {
-	constexpr bool HEAVY_MIX = ALGO == cryptonight_heavy || ALGO == cryptonight_haven || ALGO == cryptonight_bittube2 || ALGO == cryptonight_superfast;
+	constexpr bool HEAVY_MIX = ALGO == cryptonight_heavy || ALGO == cryptonight_haven || ALGO == cryptonight_bittube2 || ALGO == cryptonight_superfast || ALGO == cryptonight_power;
 
 	// This is more than we have registers, compiler will assign 2 keys on the stack
 	__m128i xin0, xin1, xin2, xin3, xin4, xin5, xin6, xin7;
@@ -317,7 +317,7 @@ template <bool SOFT_AES, bool PREFETCH, xmrstak_algo_id ALGO>
 void cn_implode_scratchpad(const __m128i* input, __m128i* output, const xmrstak_algo& algo)
 {
 	constexpr bool HEAVY_MIX = ALGO == cryptonight_heavy || ALGO == cryptonight_haven ||
-							   ALGO == cryptonight_bittube2 || ALGO == cryptonight_superfast || ALGO == cryptonight_gpu;
+							   ALGO == cryptonight_bittube2 || ALGO == cryptonight_superfast || ALGO == cryptonight_gpu || ALGO == cryptonight_power;
 
 	// This is more than we have registers, compiler will assign 2 keys on the stack
 	__m128i xout0, xout1, xout2, xout3, xout4, xout5, xout6, xout7;
@@ -431,8 +431,7 @@ void cn_implode_scratchpad(const __m128i* input, __m128i* output, const xmrstak_
 				aes_round(k9, &xout0, &xout1, &xout2, &xout3, &xout4, &xout5, &xout6, &xout7);
 			}
 
-			if(HEAVY_MIX)
-				mix_and_propagate(xout0, xout1, xout2, xout3, xout4, xout5, xout6, xout7);
+			mix_and_propagate(xout0, xout1, xout2, xout3, xout4, xout5, xout6, xout7);
 		}
 
 		for(size_t i = 0; i < 16; i++)
@@ -627,6 +626,19 @@ inline void cryptonight_conceal_tweak(__m128i& cx, __m128& conc_var)
 	cx = _mm_xor_si128(cx, _mm_cvttps_epi32(nc));
 }
 
+inline void cryptonight_power_tweak(__m128i& cx, __m128i& ax0, __m128i& bx0)
+{
+	while((_mm_cvtsi128_si32(cx) & 0xf) != 0)
+	{
+		cx = _mm_xor_si128(cx, bx0);
+		__m128d da = _mm_cvtepi32_pd(cx);
+		__m128d db = _mm_cvtepi32_pd(_mm_shuffle_epi32(cx, _MM_SHUFFLE(0, 1, 2, 3)));
+		da = _mm_mul_pd(da, db);
+		cx = _mm_aesenc_si128(_mm_castpd_si128(da), ax0);
+	}
+	cx = _mm_aesenc_si128(cx, ax0);
+}
+
 #define CN_MONERO_V8_SHUFFLE_0(n, l0, idx0, ax0, bx0, bx1, cx)                              \
 	/* Shuffle the other 3x16 byte chunks in the current 64-byte cache line */              \
 	if(ALGO == cryptonight_monero_v8 || ALGO == cryptonight_r || ALGO == cryptonight_r_wow) \
@@ -790,9 +802,15 @@ inline void cryptonight_conceal_tweak(__m128i& cx, __m128& conc_var)
 	else                                                                       \
 	{                                                                          \
 		if(SOFT_AES)                                                           \
+		{                                                                      \
 			cx = soft_aesenc(cx, ax0);                                         \
+		}                                                                      \
 		else                                                                   \
+		{                                                                      \
 			cx = _mm_aesenc_si128(cx, ax0);                                    \
+			if(ALGO == cryptonight_power)                                      \
+				cryptonight_power_tweak(cx, ax0, bx0);                         \
+		}                                                                      \
 	}                                                                          \
 	CN_MONERO_V8_SHUFFLE_0(n, l0, idx0, ax0, bx0, bx1, cx)
 

@@ -652,6 +652,9 @@ void minethd::func_multi_selector(cryptonight_ctx** ctx, minethd::cn_on_new_job&
 	case cryptonight_v8_reversewaltz:
 		algv = 15;
 		break;
+	case cryptonight_power:
+		algv = 16;
+		break;
 	default:
 		algv = 2;
 		break;
@@ -736,7 +739,13 @@ void minethd::func_multi_selector(cryptonight_ctx** ctx, minethd::cn_on_new_job&
 		Cryptonight_hash<N>::template hash<cryptonight_v8_reversewaltz, false, false>,
 		Cryptonight_hash<N>::template hash<cryptonight_v8_reversewaltz, true, false>,
 		Cryptonight_hash<N>::template hash<cryptonight_v8_reversewaltz, false, true>,
-		Cryptonight_hash<N>::template hash<cryptonight_v8_reversewaltz, true, true>};
+		Cryptonight_hash<N>::template hash<cryptonight_v8_reversewaltz, true, true>,
+
+		Cryptonight_hash<N>::template hash<cryptonight_power, false, false>,
+		Cryptonight_hash<N>::template hash<cryptonight_power, true, false>,
+		Cryptonight_hash<N>::template hash<cryptonight_power, false, true>,
+		Cryptonight_hash<N>::template hash<cryptonight_power, true, true>
+  };
 
 	std::bitset<2> digit;
 	digit.set(0, !bHaveAes);
