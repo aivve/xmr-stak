@@ -222,7 +222,7 @@ inline xmrstak_algo POW(xmrstak_algo_id algo_id)
 		{cryptonight_r_wow, cryptonight_r_wow, CN_ITER, CN_MEMORY},
 		{cryptonight_r, cryptonight_r, CN_ITER, CN_MEMORY},
 		{cryptonight_v8_reversewaltz, cryptonight_v8_reversewaltz, CN_WALTZ_ITER, CN_MEMORY},
-		{cryptonight_power, cryptonight_power, CN_POWER_ITER, CN_MEMORY}}};
+		{cryptonight_power, cryptonight_power, CN_POWER_ITER, CN_MEMORY, CN_GPU_MASK}}};
 
 	static std::array<xmrstak_algo, 4> derived_pow =
 		{{
