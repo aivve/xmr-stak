@@ -639,6 +639,19 @@ inline void cryptonight_power_tweak(__m128i& cx, __m128i& ax0, __m128i& bx0)
 	cx = _mm_aesenc_si128(cx, ax0);
 }
 
+inline void cryptonight_power_tweak_soft(__m128i& cx, __m128i& ax0, __m128i& bx0)
+{
+	while((_mm_cvtsi128_si32(cx) & 0xf) != 0)
+	{
+		cx = _mm_xor_si128(cx, bx0);
+		__m128d da = _mm_cvtepi32_pd(cx);
+		__m128d db = _mm_cvtepi32_pd(_mm_shuffle_epi32(cx, _MM_SHUFFLE(0, 1, 2, 3)));
+		da = _mm_mul_pd(da, db);
+		cx = soft_aesenc(_mm_castpd_si128(da), ax0);
+	}
+	cx = soft_aesenc(cx, ax0);
+}
+
 #define CN_MONERO_V8_SHUFFLE_0(n, l0, idx0, ax0, bx0, bx1, cx)                              \
 	/* Shuffle the other 3x16 byte chunks in the current 64-byte cache line */              \
 	if(ALGO == cryptonight_monero_v8 || ALGO == cryptonight_r || ALGO == cryptonight_r_wow) \
@@ -691,28 +704,28 @@ inline void cryptonight_power_tweak(__m128i& cx, __m128i& ax0, __m128i& bx0)
 		_mm_store_si128((__m128i*)&l0[idx1 ^ 0x30], _mm_add_epi64(chunk2, ax0));                                  \
 	}
 
-#define CN_MONERO_V8_DIV(n, cx, sqrt_result, division_result_xmm, cl)                                            \
-	if(ALGO == cryptonight_monero_v8 || ALGO == cryptonight_v8_reversewaltz)                                     \
-	{                                                                                                            \
-		uint64_t sqrt_result_tmp;                                                                                \
-		assign(sqrt_result_tmp, sqrt_result);                                                                    \
-		/* Use division and square root results from the _previous_ iteration to hide the latency */             \
-		const uint64_t cx_64 = _mm_cvtsi128_si64(cx);                                                            \
-		cl ^= static_cast<uint64_t>(_mm_cvtsi128_si64(division_result_xmm)) ^ (sqrt_result_tmp << 32);           \
-		const uint32_t d = (cx_64 + (sqrt_result_tmp << 1)) | 0x80000001UL;                                      \
-		/* Most and least significant bits in the divisor are set to 1                                           \
-		 * to make sure we don't divide by a small or even number,                                               \
-		 * so there are no shortcuts for such cases                                                              \
-		 *                                                                                                       \
-		 * Quotient may be as large as (2^64 - 1)/(2^31 + 1) = 8589934588 = 2^33 - 4                             \
-		 * We drop the highest bit to fit both quotient and remainder in 32 bits                                 \
-		 */                                                                                                      \
-		/* Compiler will optimize it to a single div instruction */                                              \
-		const uint64_t cx_s = _mm_cvtsi128_si64(_mm_srli_si128(cx, 8));                                          \
-		const uint64_t division_result = static_cast<uint32_t>(cx_s / d) + ((cx_s % d) << 32);                   \
-		division_result_xmm = _mm_cvtsi64_si128(static_cast<int64_t>(division_result));                          \
-		/* Use division_result as an input for the square root to prevent parallel implementation in hardware */ \
-		assign(sqrt_result, int_sqrt33_1_double_precision(cx_64 + division_result));                             \
+#define CN_MONERO_V8_DIV(n, cx, sqrt_result, division_result_xmm, cl)                                              \
+	if(ALGO == cryptonight_monero_v8 || ALGO == cryptonight_v8_reversewaltz)                                       \
+	{                                                                                                              \
+		uint64_t sqrt_result_tmp;                                                                                  \
+		assign(sqrt_result_tmp, sqrt_result);                                                                      \
+		/* Use division and square root results from the _previous_ iteration to hide the latency */               \
+		const uint64_t cx_64 = _mm_cvtsi128_si64(cx);                                                              \
+		cl ^= static_cast<uint64_t>(_mm_cvtsi128_si64(division_result_xmm)) ^ (sqrt_result_tmp << 32);             \
+		const uint32_t d = (cx_64 + (sqrt_result_tmp << 1)) | 0x80000001UL;                                        \
+		/* Most and least significant bits in the divisor are set to 1                                           \ \
+		 * to make sure we don't divide by a small or even number,                                               \ \
+		 * so there are no shortcuts for such cases                                                              \ \
+		 *                                                                                                       \ \
+		 * Quotient may be as large as (2^64 - 1)/(2^31 + 1) = 8589934588 = 2^33 - 4                             \ \
+		 * We drop the highest bit to fit both quotient and remainder in 32 bits                                 \ \
+		 */                                                                                                        \
+		/* Compiler will optimize it to a single div instruction */                                                \
+		const uint64_t cx_s = _mm_cvtsi128_si64(_mm_srli_si128(cx, 8));                                            \
+		const uint64_t division_result = static_cast<uint32_t>(cx_s / d) + ((cx_s % d) << 32);                     \
+		division_result_xmm = _mm_cvtsi64_si128(static_cast<int64_t>(division_result));                            \
+		/* Use division_result as an input for the square root to prevent parallel implementation in hardware */   \
+		assign(sqrt_result, int_sqrt33_1_double_precision(cx_64 + division_result));                               \
 	}
 
 #define CN_R_RANDOM_MATH(n, al, ah, cl, bx0, bx1, cn_r_data)                                   \
@@ -804,6 +817,8 @@ inline void cryptonight_power_tweak(__m128i& cx, __m128i& ax0, __m128i& bx0)
 		if(SOFT_AES)                                                           \
 		{                                                                      \
 			cx = soft_aesenc(cx, ax0);                                         \
+			if(ALGO == cryptonight_power)                                      \
+				cryptonight_power_tweak_soft(cx, ax0, bx0);                    \
 		}                                                                      \
 		else                                                                   \
 		{                                                                      \

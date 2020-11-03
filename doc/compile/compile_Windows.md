@@ -115,7 +115,7 @@ Do not follow old information that you need the AMD APP SDK. AMD has removed the
   ```
 - For Exclude some of dependence you can follow the command below to set the ENABLE to OFF
   ```
-  make -G "Visual Studio 15 2017 Win64" -T v141,host=x64 -DCMAKE_BUILD_TYPE=Release -DMICROHTTPD_ENABLE=OFF -DCUDA_ENABLE=OFF -DOpenCL_ENABLE=OFF ..
+  cmake -G "Visual Studio 15 2017 Win64" -T v141,host=x64 -DCMAKE_BUILD_TYPE=Release -DMICROHTTPD_ENABLE=OFF -DCUDA_ENABLE=OFF -DOpenCL_ENABLE=OFF ..
   cmake --build . --config Release --target clean
   cmake --build . --config Release --target install
   cd bin\Release

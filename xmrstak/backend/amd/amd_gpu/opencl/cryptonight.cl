@@ -31,6 +31,7 @@ R"===(
 #define cryptonight_gpu 13
 #define cryptonight_conceal 14
 #define cryptonight_v8_reversewaltz 17
+#define cryptonight_power 18
 
 
 static const __constant ulong keccakf_rndc[24] =
@@ -525,7 +526,7 @@ __kernel void JOIN(cn0,ALGO)(__global ulong *input, __global uint4 *Scratchpad, 
 
 	mem_fence(CLK_LOCAL_MEM_FENCE);
 
-#if (ALGO == cryptonight_heavy || ALGO == cryptonight_haven || ALGO == cryptonight_bittube2 || ALGO == cryptonight_superfast)
+#if (ALGO == cryptonight_heavy || ALGO == cryptonight_haven || ALGO == cryptonight_bittube2 || ALGO == cryptonight_superfast || ALGO == cryptonight_power)
 	__local uint4 xin[8][8];
 	{
 
@@ -722,6 +723,9 @@ __kernel void JOIN(cn1,ALGO) (__global uint4 *Scratchpad, __global ulong *states
 			((uint4 *)c)[0] = AES_Round2_bittube2(AES0, AES1, ~((uint4 *)c)[0], ((uint4 *)a)[0]);
 #else
 			((uint4 *)c)[0] = AES_Round2(AES0, AES1, ((uint4 *)c)[0], ((uint4 *)a)[0]);
+#if(ALGO == cryptonight_power)
+      
+#endif
 #endif
 
 #if(ALGO == cryptonight_monero_v8)
@@ -901,7 +905,7 @@ __kernel void JOIN(cn2,ALGO) (__global uint4 *Scratchpad, __global ulong *states
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#if (ALGO == cryptonight_gpu || ALGO == cryptonight_heavy || ALGO == cryptonight_haven || ALGO == cryptonight_bittube2  || ALGO == cryptonight_superfast)
+#if (ALGO == cryptonight_gpu || ALGO == cryptonight_heavy || ALGO == cryptonight_haven || ALGO == cryptonight_bittube2  || ALGO == cryptonight_superfast || ALGO == cryptonight_power)
     __local uint4 xin1[WORKSIZE][8];
     __local uint4 xin2[WORKSIZE][8];
 #endif
@@ -938,7 +942,7 @@ __kernel void JOIN(cn2,ALGO) (__global uint4 *Scratchpad, __global ulong *states
 
     barrier(CLK_LOCAL_MEM_FENCE);
 
-#if (ALGO == cryptonight_gpu || ALGO == cryptonight_heavy || ALGO == cryptonight_haven || ALGO == cryptonight_bittube2 || ALGO == cryptonight_superfast)
+#if (ALGO == cryptonight_gpu || ALGO == cryptonight_heavy || ALGO == cryptonight_haven || ALGO == cryptonight_bittube2 || ALGO == cryptonight_superfast || ALGO == cryptonight_power)
 #	if (HAS_AMD_BPERMUTE == 1)
 	int lane = (groupIdx * 8 + ((lIdx + 1) % 8)) << 2;
 	uint4 tmp = (uint4)(0, 0, 0, 0);
@@ -957,7 +961,7 @@ __kernel void JOIN(cn2,ALGO) (__global uint4 *Scratchpad, __global ulong *states
 #endif
     {
 
-#if (ALGO == cryptonight_gpu || ALGO == cryptonight_heavy || ALGO == cryptonight_haven || ALGO == cryptonight_bittube2 || ALGO == cryptonight_superfast)
+#if (ALGO == cryptonight_gpu || ALGO == cryptonight_heavy || ALGO == cryptonight_haven || ALGO == cryptonight_bittube2 || ALGO == cryptonight_superfast || ALGO == cryptonight_power)
 
 #	if	(HAS_AMD_BPERMUTE == 1)
         #pragma unroll 2
@@ -1028,7 +1032,7 @@ __kernel void JOIN(cn2,ALGO) (__global uint4 *Scratchpad, __global ulong *states
 #endif
     }
 
-#if (ALGO == cryptonight_gpu || ALGO == cryptonight_heavy || ALGO == cryptonight_haven || ALGO == cryptonight_bittube2 || ALGO == cryptonight_superfast)
+#if (ALGO == cryptonight_gpu || ALGO == cryptonight_heavy || ALGO == cryptonight_haven || ALGO == cryptonight_bittube2 || ALGO == cryptonight_superfast || ALGO == cryptonight_power)
     /* Also left over threads performe this loop.
      * The left over thread results will be ignored
      */
